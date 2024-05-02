@@ -30,20 +30,3 @@ resource "aws_instance" "ec2-be" {
     extra = var.extra
   }
 }
-
-resource "aws_s3_bucket" "s3_bucket" {
-  bucket_prefix = var.bucket_name
-  tags          = var.tags
-}
-
-resource "aws_s3_bucket_website_configuration" "s3_bucket" {
-  bucket = aws_s3_bucket.s3_bucket.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "error.html"
-  }
-}
