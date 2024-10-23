@@ -15,7 +15,7 @@ locals {
 }
 
 // Subnets
-resource "aws_subnet" "this" {
+resource "aws_subnet" "subnets" {
   for_each = var.subnets
 
   vpc_id                  = data.aws_vpc.default.id
@@ -64,10 +64,10 @@ resource "aws_route_table" "private" {
   }
 }
 
-resource "aws_route_table_association" "this" {
+resource "aws_route_table_association" "rt_assoc" {
   for_each = var.subnets
 
-  subnet_id      = aws_subnet.this[each.key].id
+  subnet_id      = aws_subnet.subnets[each.key].id
   route_table_id = each.value.type == "public" ? aws_route_table.public.id : aws_route_table.private.id
 }
 
@@ -78,7 +78,7 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.this["public_a"].id
+  subnet_id     = aws_subnet.subnets["public_a"].id
 
   tags = {
     Name        = "${var.name_prefix}-main-nat"
@@ -314,7 +314,7 @@ resource "aws_ecs_service" "microservice" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.this["public_a"].id, aws_subnet.this["public_b"].id]
+    subnets          = [aws_subnet.subnets["public_a"].id, aws_subnet.subnets["public_b"].id]
     security_groups  = [aws_security_group.app.id]
     assign_public_ip = true
   }
@@ -347,7 +347,7 @@ resource "aws_lb" "frontend" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb.id]
-  subnets            = [aws_subnet.this["public_a"].id, aws_subnet.this["public_b"].id]
+  subnets            = [aws_subnet.subnets["public_a"].id, aws_subnet.subnets["public_b"].id]
 
   tags = {
     Name        = "${var.name_prefix}-frontend-lb"
@@ -416,13 +416,13 @@ resource "aws_efs_file_system" "redis_data" {
 
 resource "aws_efs_mount_target" "redis_data_mt_a" {
   file_system_id  = aws_efs_file_system.redis_data.id
-  subnet_id       = aws_subnet.this["public_a"].id
+  subnet_id       = aws_subnet.subnets["public_a"].id
   security_groups = [aws_security_group.app.id]
 }
 
 resource "aws_efs_mount_target" "redis_data_mt_b" {
   file_system_id  = aws_efs_file_system.redis_data.id
-  subnet_id       = aws_subnet.this["public_b"].id
+  subnet_id       = aws_subnet.subnets["public_b"].id
   security_groups = [aws_security_group.app.id]
 }
 
@@ -523,7 +523,7 @@ resource "aws_ecs_service" "redis_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.this["public_a"].id, aws_subnet.this["public_b"].id]
+    subnets          = [aws_subnet.subnets["public_a"].id, aws_subnet.subnets["public_b"].id]
     security_groups  = [aws_security_group.app.id]
     assign_public_ip = true
   }
